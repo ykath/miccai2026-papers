@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MICCAI 2026 论文库 · Open Access Reviews</title>
+<style>
+  :root {
+    --bg: #f4f6fa; --panel: #ffffff; --border: #e3e8f0; --text: #1c2333;
+    --muted: #6b7688; --accent: #2456d6; --accent-soft: #e8eefc;
+    --chip: #eef2f8; --ok: #0a8a4a; --warn: #b06a00;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px;
+    display: flex; flex-direction: column;
+  }
+
+  header {
+    background: linear-gradient(120deg, #16307a, #2456d6 60%, #3d74e8);
+    color: #fff; padding: 10px 18px; display: flex; flex-wrap: wrap;
+    align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(20,40,90,.25);
+    position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 17px; margin: 0 14px 0 0; white-space: nowrap; }
+  header h1 small { font-weight: 400; opacity: .75; font-size: 12px; }
+  .stat-chip {
+    background: rgba(255,255,255,.14); border-radius: 20px; padding: 3px 10px;
+    font-size: 12px; white-space: nowrap;
+  }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto; }
+  .toolbar input[type="search"], .toolbar select {
+    border: none; border-radius: 7px; padding: 7px 10px; font-size: 13px;
+    background: #fff; color: var(--text); outline: none; min-width: 60px;
+  }
+  .toolbar input[type="search"] { width: 300px; }
+  .toolbar label.chk { font-size: 12.5px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+  #list-pane {
+    width: 38%; min-width: 340px; overflow-y: auto; padding: 10px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  #detail-pane { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+  .paper-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 12px; cursor: pointer; transition: box-shadow .15s, border-color .15s;
+  }
+  .paper-card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(36,86,214,.12); }
+  .paper-card.active { border-color: var(--accent); background: var(--accent-soft); }
+  .card-row1 { display: flex; gap: 8px; align-items: baseline; }
+  .paper-no {
+    font-family: Consolas, monospace; font-size: 11px; color: var(--muted);
+    background: var(--chip); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+  }
+  .t-zh { font-weight: 600; line-height: 1.45; }
+  .t-en { color: var(--muted); font-size: 12.5px; margin-top: 2px; line-height: 1.4; }
+  .authors { color: var(--muted); font-size: 12px; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chips { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip {
+    background: var(--chip); border-radius: 5px; padding: 1px 7px; font-size: 11px; color: #46536b;
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .chip.topic { cursor: pointer; }
+  .chip.topic:hover { background: var(--accent-soft); color: var(--accent); }
+  .badge-yes { background: #e2f5ec; color: var(--ok); }
+  .badge-code { background: #fff3df; color: var(--warn); }
+
+  #pager { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 0 20px; }
+  #pager button {
+    border: 1px solid var(--border); background: var(--panel); border-radius: 7px;
+    padding: 6px 12px; cursor: pointer; font-size: 13px;
+  }
+  #pager button:disabled { opacity: .4; cursor: default; }
+  #pager .page-info { font-size: 12.5px; color: var(--muted); }
+
+  .empty { text-align: center; color: var(--muted); padding: 60px 0; }
+  .detail { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; max-width: 1100px; }
+  .detail h2 { margin: 0; font-size: 19px; line-height: 1.5; }
+  .detail .en-title { color: var(--muted); font-size: 14px; margin: 4px 0 12px; line-height: 1.5; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12.5px; margin-bottom: 10px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .links a, .links button {
+    text-decoration: none; border: 1px solid var(--border); background: var(--panel);
+    color: var(--accent); border-radius: 7px; padding: 5px 11px; font-size: 12.5px; cursor: pointer;
+  }
+  .links a:hover, .links button:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-top: 14px; flex-wrap: wrap; }
+  .tab {
+    padding: 8px 14px; cursor: pointer; font-size: 13.5px; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; user-select: none;
+  }
+  .tab:hover { color: var(--accent); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+  .tab-body { padding: 14px 4px; font-size: 14px; line-height: 1.85; white-space: pre-wrap; }
+  .tab-body.abstract { white-space: normal; }
+
+  .review-block { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+  .review-head {
+    display: flex; align-items: center; gap: 8px; padding: 9px 13px; background: #f7f9fd;
+    cursor: pointer; flex-wrap: wrap;
+  }
+  .review-head b { font-size: 13.5px; }
+  .review-body { padding: 4px 15px 12px; display: none; }
+  .review-block.open .review-body { display: block; }
+  .review-block.open .caret { transform: rotate(90deg); }
+  .caret { transition: transform .15s; color: var(--muted); font-size: 11px; }
+  .rating-chip { border-radius: 5px; padding: 1px 8px; font-size: 11.5px; font-weight: 600; }
+  .rate-accept { background: #e2f5ec; color: var(--ok); }
+  .rate-reject { background: #fdeaea; color: #c0392b; }
+  .rate-neutral { background: var(--chip); color: #46536b; }
+  .qa { margin: 10px 0; }
+  .qa .q { font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+  .qa .a { white-space: pre-wrap; line-height: 1.75; color: #2a3348; }
+
+  .dataset-item { margin: 6px 0; }
+  .dataset-item a { color: var(--accent); }
+  .note { color: var(--muted); font-size: 12.5px; }
+  #loading { color: var(--muted); text-align: center; padding: 30px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MICCAI 2026 论文库 <small>· Open Access Reviews</small></h1>
+  <span class="stat-chip" id="stat-papers">论文 -</span>
+  <span class="stat-chip" id="stat-translated">已译 -</span>
+  <span class="stat-chip" id="stat-reviewed">评审 -</span>
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="搜索：中文/英文关键词、作者…（多词与）" />
+    <select id="topic-select"><option value="">全部主题</option></select>
+    <label class="chk"><input type="checkbox" id="code-only" /> 仅有代码</label>
+    <select id="page-size">
+      <option>30</option><option>50</option><option>100</option><option>150</option>
+    </select>
+  </div>
+</header>
+
+<main>
+  <div id="list-pane">
+    <div id="paper-list"></div>
+    <div id="pager"></div>
+  </div>
+  <div id="detail-pane">
+    <div class="empty" id="placeholder">← 点击左侧论文查看详情<br/>支持中英文搜索、主题筛选；摘要与题目已由 DeepSeek 翻译</div>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const state = { q: "", topic: "", code: false, limit: 30, offset: 0, total: 0, activeId: null };
+
+function apiUrl() {
+  const p = new URLSearchParams();
+  if (state.q) p.set("q", state.q);
+  if (state.topic) p.set("topic", state.topic);
+  if (state.code) p.set("code", "1");
+  p.set("limit", state.limit);
+  p.set("offset", state.offset);
+  return `/api/papers?${p}`;
+}
+
+async function loadList(resetOffset = false) {
+  if (resetOffset) state.offset = 0;
+  const listEl = $("paper-list");
+  listEl.innerHTML = '<div id="loading">加载中…</div>';
+  try {
+    const data = await (await fetch(apiUrl())).json();
+    state.total = data.total;
+    renderList(data);
+    renderPager();
+    renderStats(data.stats);
+  } catch (e) {
+    listEl.innerHTML = `<div class="empty">加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+function renderStats(stats) {
+  if (!stats) return;
+  $("stat-papers").textContent = `论文 ${stats.papers}`;
+  $("stat-translated").textContent = `已译 ${stats.translated}/${stats.papers}`;
+  $("stat-reviewed").textContent = `含评审 ${stats.reviewed}`;
+}
+
+function renderList(data) {
+  const listEl = $("paper-list");
+  if (!data.rows.length) {
+    listEl.innerHTML = '<div class="empty">没有匹配的论文</div>';
+    return;
+  }
+  listEl.innerHTML = data.rows.map((r) => {
+    const topics = (r.topics || "").split(";").map(t => t.trim()).filter(Boolean);
+    return `
+    <div class="paper-card ${r.id === state.activeId ? "active" : ""}" data-id="${r.id}">
+      <div class="card-row1">
+        <span class="paper-no">#${esc(r.paper_no)}</span>
+        <span class="t-zh">${esc(r.title_zh || r.title)}</span>
+      </div>
+      ${r.title_zh ? `<div class="t-en">${esc(r.title)}</div>` : ""}
+      ${r.authors ? `<div class="authors">${esc(r.authors)}</div>` : ""}
+      <div class="chips">
+        ${topics.slice(0, 3).map((t) => `<span class="chip topic" data-topic="${esc(t)}">${esc(t)}</span>`).join("")}
+        ${topics.length > 3 ? `<span class="chip">+${topics.length - 3}</span>` : ""}
+        ${r.translated ? '<span class="chip badge-yes">已译</span>' : ""}
+        ${r.has_code ? '<span class="chip badge-code">有代码</span>' : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  listEl.querySelectorAll(".paper-card").forEach((el) =>
+    el.addEventListener("click", () => selectPaper(Number(el.dataset.id))));
+  listEl.querySelectorAll(".chip.topic").forEach((el) =>
+    el.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      state.topic = el.dataset.topic;
+      $("topic-select").value = state.topic;
+      loadList(true);
+    }));
+}
+
+function renderPager() {
+  const pager = $("pager");
+  const pages = Math.max(1, Math.ceil(state.total / state.limit));
+  const page = Math.floor(state.offset / state.limit) + 1;
+  pager.innerHTML = `
+    <button id="pg-first" ${page === 1 ? "disabled" : ""}>«</button>
+    <button id="pg-prev" ${page === 1 ? "disabled" : ""}>上一页</button>
+    <span class="page-info">第 ${page} / ${pages} 页 · 共 ${state.total} 篇</span>
+    <button id="pg-next" ${page === pages ? "disabled" : ""}>下一页</button>
+    <button id="pg-last" ${page === pages ? "disabled" : ""}>»</button>`;
+  const go = (p) => { state.offset = (p - 1) * state.limit; loadList(); window.scrollTo(0, 0); $("list-pane").scrollTop = 0; };
+  $("pg-first").onclick = () => go(1);
+  $("pg-prev").onclick = () => go(page - 1);
+  $("pg-next").onclick = () => go(page + 1);
+  $("pg-last").onclick = () => go(pages);
+}
+
+async function selectPaper(id) {
+  state.activeId = id;
+  document.querySelectorAll(".paper-card").forEach((el) =>
+    el.classList.toggle("active", Number(el.dataset.id) === id));
+  const pane = $("detail-pane");
+  pane.innerHTML = '<div id="loading">加载详情…</div>';
+  try {
+    const p = await (await fetch(`/api/paper?id=${id}`)).json();
+    if (p.error) throw new Error(p.error);
+    renderDetail(p);
+  } catch (e) {
+    pane.innerHTML = `<div class="empty">详情加载失败：${esc(e.message)}</div>`;
+  }
+}
+
+function rateClass(rating) {
+  if (rating >= 4) return "rate-accept";
+  if (rating <= 2) return "rate-reject";
+  return "rate-neutral";
+}
+
+function renderBlocks(jsonStr, type) {
+  const blocks = (() => { try { return JSON.parse(jsonStr || "[]"); } catch { return []; } })();
+  if (!blocks.length) return '<div class="note">无内容</div>';
+  return blocks.map((b, i) => {
+    const chips = [];
+    if (type === "review" && b.rating != null)
+      chips.push(`<span class="rating-chip ${rateClass(b.rating)}">评分 ${b.rating}/6</span>`);
+    if (type === "review" && b.confidence != null)
+      chips.push(`<span class="rating-chip rate-neutral">置信度 ${b.confidence}/4</span>`);
+    if (b.final) chips.push(`<span class="rating-chip rate-accept">最终: ${esc(b.final)}</span>`);
+    const qas = (b.items || []).map((it) =>
+      `<div class="qa"><div class="q">${esc(it.q)}</div><div class="a">${esc(it.a)}</div></div>`).join("");
+    return `
+      <div class="review-block ${i === 0 ? "open" : ""}">
+        <div class="review-head"><span class="caret">▶</span><b>${esc(b.heading)}</b>${chips.join("")}</div>
+        <div class="review-body">${qas}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderDetail(p) {
+  const topics = (p.topics || "").split(";").map(t => t.trim()).filter(Boolean);
+  const reviews = (() => { try { return JSON.parse(p.reviews || "[]"); } catch { return []; } })();
+  const datasets = (() => { try { return JSON.parse(p.dataset_info || "[]"); } catch { return []; } })();
+
+  const links = [];
+  if (p.pdf_url) links.push(`<a href="${esc(p.pdf_url)}" target="_blank">📄 论文 PDF</a>`);
+  if (p.supp_url) links.push(`<a href="${esc(p.supp_url)}" target="_blank">📦 补充材料</a>`);
+  if (p.code_url) links.push(`<a href="${esc(p.code_url)}" target="_blank">💻 代码仓库</a>`);
+  if (p.springer_url) links.push(`<a href="${esc(p.springer_url)}" target="_blank">🔗 SpringerLink</a>`);
+  if (p.sharedit_url) links.push(`<a href="${esc(p.sharedit_url)}" target="_blank">🤝 SharedIt</a>`);
+  if (p.detail_url) links.push(`<a href="${esc(p.detail_url)}" target="_blank">🌐 官方页面</a>`);
+  if (p.bibtex) links.push(`<button id="copy-bibtex">📋 复制 BibTeX</button>`);
+
+  $("detail-pane").innerHTML = `
+  <div class="detail">
+    <h2>${esc(p.title_zh || p.title)}</h2>
+    ${p.title_zh ? `<div class="en-title">${esc(p.title)}</div>` : ""}
+    <div class="meta-row">
+      <span class="paper-no">#${esc(p.paper_no)}</span>
+      <span>投稿号 ${esc(p.submission_id)}</span>
+      ${p.publish_date ? `<span>发布 ${esc(p.publish_date)}</span>` : ""}
+    </div>
+    <div class="meta-row">${esc(p.authors || "")}</div>
+    ${topics.length ? `<div class="chips">${topics.map((t) => `<span class="chip topic" data-topic="${esc(t)}">${esc(t)}</span>`).join("")}</div>` : ""}
+    <div class="links">${links.join("")}</div>
+
+    <div class="tabs" id="tabs"></div>
+    <div id="tab-body"></div>
+  </div>`;
+
+  const tabs = [
+    { key: "zh", label: "中文摘要", render: () => p.abstract_zh
+        ? `<div class="tab-body abstract">${esc(p.abstract_zh)}</div>`
+        : '<div class="note">暂无翻译</div>' },
+    { key: "en", label: "English Abstract", render: () => `<div class="tab-body abstract">${esc(p.abstract || "")}</div>` },
+    { key: "review", label: `评审意见 (${reviews.length})`, render: () => renderBlocks(p.reviews, "review") },
+    { key: "feedback", label: "作者反馈", render: () => p.author_feedback
+        ? `<div class="tab-body">${esc(p.author_feedback)}</div>` : '<div class="note">无内容</div>' },
+    { key: "meta", label: "Meta-Review", render: () => renderBlocks(p.meta_review, "meta") },
+    { key: "data", label: `数据集 (${datasets.length})`, render: () => datasets.length
+        ? datasets.map((d) => `<div class="dataset-item">${esc(d.text)}${(d.urls || []).map((u) => ` <a href="${esc(u)}" target="_blank">[${esc(u.replace(/^https?:\/\//, "").slice(0, 50))}]</a>`).join("")}</div>`).join("")
+        : '<div class="note">无内容</div>' },
+    { key: "bib", label: "BibTeX", render: () => p.bibtex
+        ? `<div class="tab-body" style="font-family:Consolas,monospace;font-size:12.5px">${esc(p.bibtex)}</div>`
+        : '<div class="note">无内容</div>' },
+  ];
+
+  const tabsEl = $("tabs"), bodyEl = $("tab-body");
+  tabs.forEach((t, i) => {
+    const el = document.createElement("div");
+    el.className = "tab" + (i === 0 ? " active" : "");
+    el.textContent = t.label;
+    el.onclick = () => {
+      tabsEl.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      el.classList.add("active");
+      bodyEl.innerHTML = t.render();
+      bodyEl.querySelectorAll(".review-head").forEach((h) =>
+        h.addEventListener("click", () => h.parentElement.classList.toggle("open")));
+    };
+    tabsEl.appendChild(el);
+  });
+  bodyEl.innerHTML = tabs[0].render();
+  bodyEl.querySelectorAll(".review-head").forEach((h) =>
+    h.addEventListener("click", () => h.parentElement.classList.toggle("open")));
+
+  const copyBtn = $("copy-bibtex");
+  if (copyBtn) copyBtn.onclick = async () => {
+    try { await navigator.clipboard.writeText(p.bibtex); copyBtn.textContent = "✅ 已复制"; }
+    catch { copyBtn.textContent = "复制失败"; }
+    setTimeout(() => (copyBtn.textContent = "📋 复制 BibTeX"), 1500);
+  };
+}
+
+async function loadTopics() {
+  try {
+    const data = await (await fetch("/api/topics")).json();
+    const select = $("topic-select");
+    const byGroup = {};
+    data.topics.forEach((t) => {
+      const g = t.name.includes(" -> ") ? t.name.split(" -> ")[0] : "其他";
+      (byGroup[g] = byGroup[g] || []).push(t);
+    });
+    Object.keys(byGroup).sort().forEach((g) => {
+      const og = document.createElement("optgroup");
+      og.label = `${g} (${byGroup[g].reduce((s, t) => s + t.count, 0)})`;
+      byGroup[g].forEach((t) => {
+        const opt = document.createElement("option");
+        opt.value = t.name;
+        opt.textContent = `${t.name} (${t.count})`;
+        og.appendChild(opt);
+      });
+      select.appendChild(og);
+    });
+  } catch (e) { console.error(e); }
+}
+
+let searchTimer = null;
+$("search").addEventListener("input", (e) => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => { state.q = e.target.value.trim(); loadList(true); }, 300);
+});
+$("search").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { clearTimeout(searchTimer); state.q = e.target.value.trim(); loadList(true); }
+});
+$("topic-select").addEventListener("change", (e) => { state.topic = e.target.value; loadList(true); });
+$("code-only").addEventListener("change", (e) => { state.code = e.target.checked; loadList(true); });
+$("page-size").addEventListener("change", (e) => { state.limit = Number(e.target.value); loadList(true); });
+
+loadTopics();
+loadList(true);
+</script>
+</body>
+</html>

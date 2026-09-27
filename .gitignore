@@ -1,0 +1,8 @@
+logs/
+data/*.sqlite-wal
+data/*.sqlite-shm
+__pycache__/
+sample_*.html
+sample_*.json
+.zcode/
+.zcodeignore
