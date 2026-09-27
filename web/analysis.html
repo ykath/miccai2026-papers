@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MICCAI 2026 论文统计分析</title>
+<script src="vendor/echarts.min.js"></script>
+<script src="analysis_stats.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fa; --panel: #ffffff; --border: #e3e8f0; --text: #1c2333;
+    --muted: #6b7688; --accent: #2456d6; --accent-soft: #e8eefc;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+         background: var(--bg); color: var(--text); font-size: 14px; }
+
+  header {
+    background: linear-gradient(120deg, #16307a, #2456d6 60%, #3d74e8);
+    color: #fff; padding: 20px 28px;
+  }
+  header h1 { margin: 0; font-size: 22px; }
+  header .sub { margin-top: 6px; font-size: 13px; opacity: .85; }
+  header .nav { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; }
+  header .nav a { color: #fff; text-decoration: none; font-size: 13px;
+    padding: 5px 13px; border: 1px solid rgba(255,255,255,.4); border-radius: 999px; }
+  header .nav a:hover { background: rgba(255,255,255,.15); }
+
+  main { max-width: 1240px; margin: 0 auto; padding: 18px 20px 60px; }
+  section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+            padding: 18px 20px; margin-bottom: 18px; }
+  section h2 { margin: 0 0 4px; font-size: 18px; }
+  section .desc { color: var(--muted); font-size: 13px; margin-bottom: 12px; line-height: 1.6; }
+  .sub2 { margin-top: 14px; font-size: 15px; color: var(--accent); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .card .num { font-size: 26px; font-weight: 700; color: var(--accent); }
+  .card .num small { font-size: 13px; font-weight: 400; color: var(--muted); }
+  .card .lbl { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  @media (max-width: 920px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+  .chart { width: 100%; height: 420px; }
+  .chart.tall { height: 520px; }
+  .chart.short { height: 300px; }
+
+  .note-block { border-left: 3px solid var(--accent); background: var(--bg);
+    border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 10px; font-size: 13.5px; line-height: 1.8; }
+  .note-block b { color: var(--accent); }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px 0 30px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MICCAI 2026 论文统计分析</h1>
+  <div class="sub" id="gen-time"></div>
+  <div class="nav">
+    <a href="index.html">← 返回论文库</a>
+    <a href="https://papers.miccai.org/miccai-2026/" target="_blank">数据来源 papers.miccai.org</a>
+  </div>
+</header>
+
+<main>
+  <section>
+    <h2>一、总览指标</h2>
+    <div class="desc">基于 papers.miccai.org 开放评审站抓取的全量数据（含公开评审意见与 DeepSeek 中文翻译）。</div>
+    <div class="cards" id="overview-cards"></div>
+  </section>
+
+  <section>
+    <h2>二、官方主题分类分布</h2>
+    <div class="desc">论文可归属多个主题（多标签）。左：6 大主题组论文数占比；右：Top 20 子主题（<b>点击柱子跳转论文库对应筛选</b>）。</div>
+    <div class="grid2">
+      <div id="chart-group" class="chart short"></div>
+      <div id="chart-subtopic" class="chart tall"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>三、评审质量分析</h2>
+    <div class="desc">MICCAI 2026 公开评审数据：初始评分（1-6，6 最强；6-4 倾向接收，3-1 倾向拒稿）、审稿人置信度（1-4）、Rebuttal 后最终意见。</div>
+    <div class="grid2">
+      <div>
+        <div id="chart-rating" class="chart short"></div>
+        <div class="sub2">评审人置信度分布</div>
+        <div id="chart-conf" class="chart short"></div>
+      </div>
+      <div>
+        <div id="chart-final" class="chart short"></div>
+        <div class="sub2">每篇论文评审人数</div>
+        <div id="chart-nreviews" class="chart short"></div>
+      </div>
+    </div>
+    <div class="sub2">研究主题 × 平均评分（按研究主题归类统计，仅显示评审数充足的主题）</div>
+    <div id="chart-theme-rating" class="chart tall"></div>
+  </section>
+
+  <section>
+    <h2>四、研究主题归类</h2>
+    <div class="desc">基于「标题 + 英文摘要」正则规则的多标签归类（透明可复核，规则见 scripts/analyze_papers.py）。左：多标签命中数；右：主主题（首个命中）占比。</div>
+    <div class="grid2">
+      <div id="chart-theme" class="chart tall"></div>
+      <div id="chart-theme-primary" class="chart short"></div>
+    </div>
+    <div id="theme-examples" class="hint"></div>
+  </section>
+
+  <section>
+    <h2>五、高频关键词（英文标题 + 摘要 / 中文摘要术语）</h2>
+    <div class="desc">左：英文词频（标题按 3 倍权重计，已去停用词与词形归并）；右：中文摘要技术术语出现论文数（基于 DeepSeek 中文翻译）。</div>
+    <div class="grid2">
+      <div id="chart-keyword" class="chart tall"></div>
+      <div id="chart-zh" class="chart tall"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>六、热点技术短语</h2>
+    <div class="desc">在「标题 + 摘要」中命中热点技术正则的论文数与占比（多标签）。</div>
+    <div id="chart-phrase" class="chart tall"></div>
+    <div id="phrase-examples" class="hint"></div>
+  </section>
+
+  <section>
+    <h2>七、研究主题 × 热点技术热力图</h2>
+    <div class="desc">行：研究主题（多标签）；列：热点技术；数值为命中论文数。颜色越深代表该主题下该技术越集中。</div>
+    <div id="chart-heatmap" class="chart tall"></div>
+  </section>
+
+  <section>
+    <h2>八、开放科学与数据洞察</h2>
+    <div class="desc">代码开源情况（论文详情页声明 GitHub 仓库）与基于统计结果的自动洞察。</div>
+    <div class="grid3">
+      <div id="chart-code" class="chart"></div>
+      <div id="insights"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>九、高产作者 Top 20</h2>
+    <div class="desc">按论文署名统计（含合著）。</div>
+    <div id="chart-author" class="chart tall"></div>
+  </section>
+
+  <footer id="footer"></footer>
+</main>
+
+<script>
+"use strict";
+const S = window.ANALYSIS_STATS;
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const charts = [];
+const PALETTE = ["#2456d6", "#3d74e8", "#0e9f6e", "#f59e0b", "#e02424", "#7e3af2",
+                 "#0694a2", "#c2784c", "#5850ec", "#d61f69", "#0f766e", "#b45309"];
+const AXIS = { color: "#46536b", fontSize: 11 };
+const TIP = { trigger: "item", textStyle: { fontSize: 12 } };
+
+function make(id) {
+  const el = document.getElementById(id);
+  const c = echarts.init(el);
+  charts.push(c);
+  return c;
+}
+window.addEventListener("resize", () => charts.forEach((c) => c.resize()));
+
+/* ---------- 一、总览 ---------- */
+document.getElementById("gen-time").textContent =
+  `共 ${S.overview.total} 篇主会议论文 · 生成于 ${S.generatedAt}`;
+const o = S.overview;
+document.getElementById("overview-cards").innerHTML = [
+  ["论文总数", `${o.total}`, "篇"],
+  ["公开评审", `${o.totalReviews}`, `条 · 均分 ${o.avgRating}`],
+  ["代码开源", `${o.codeRatio}<small>%</small>`, `${o.withCode} 篇声明仓库`],
+  ["补充材料", `${o.withSupp}`, "篇"],
+  ["数据集声明", `${o.withDataset}`, "篇"],
+  ["平均作者数", `${o.avgAuthors}`, "人/篇"],
+  ["英文摘要均长", `${o.avgAbstractEn}`, "词"],
+  ["中文摘要均长", `${o.avgAbstractZh}`, "字"],
+].map(([lbl, num, sub]) => `<div class="card"><div class="num">${num}</div><div class="lbl">${lbl}（${sub}）</div></div>`).join("");
+
+/* ---------- 二、官方主题 ---------- */
+make("chart-group").setOption({
+  color: PALETTE, tooltip: { ...TIP, formatter: "{b}: {c} 篇 ({d}%)" },
+  legend: { bottom: 0, textStyle: { fontSize: 11, color: AXIS.color } },
+  series: [{ type: "pie", radius: ["38%", "66%"], center: ["50%", "44%"],
+    itemStyle: { borderRadius: 5, borderColor: "#fff", borderWidth: 2 },
+    label: { formatter: "{b}\n{d}%", fontSize: 11, color: AXIS.color },
+    data: S.topicGroups.map((g) => ({ name: g.name, value: g.count })) }],
+});
+const sub = make("chart-subtopic");
+sub.setOption({
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => `${p[0].name}<br/>${p[0].value} 篇（占全部 ${S.subtopics[p[0].dataIndex].ratio}%）` },
+  grid: { left: 8, right: 40, top: 10, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true,
+    data: S.subtopics.map((t) => t.name.replace(/^[^>]+-> /, "")),
+    axisLabel: { ...AXIS, width: 150, overflow: "truncate" } },
+  series: [{ type: "bar", data: S.subtopics.map((t) => t.count),
+    itemStyle: { color: "#2456d6", borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+sub.on("click", (p) => {
+  const t = S.subtopics[p.dataIndex];
+  if (t) window.open(`index.html?topic=${encodeURIComponent(t.name)}`, "_self");
+});
+
+/* ---------- 三、评审质量 ---------- */
+make("chart-rating").setOption({
+  title: { text: "初始评分分布（1-6）", left: "center", textStyle: { fontSize: 13, color: "#1c2333" } },
+  tooltip: { ...TIP, trigger: "axis" },
+  grid: { left: 40, right: 20, top: 40, bottom: 40 },
+  xAxis: { type: "category", name: "评分", data: Object.keys(S.ratings.dist), axisLabel: AXIS },
+  yAxis: { type: "value", axisLabel: AXIS },
+  series: [{ type: "bar", data: Object.values(S.ratings.dist),
+    itemStyle: { color: (p) => (p.value >= 1000 ? "#e02424" : p.dataIndex >= 4 ? "#0e9f6e" : "#2456d6"), borderRadius: [4, 4, 0, 0] },
+    label: { show: true, position: "top", fontSize: 11, color: AXIS.color } }],
+});
+make("chart-conf").setOption({
+  tooltip: { ...TIP, trigger: "axis" },
+  grid: { left: 40, right: 20, top: 20, bottom: 40 },
+  xAxis: { type: "category", name: "置信度", data: Object.keys(S.ratings.confidence), axisLabel: AXIS },
+  yAxis: { type: "value", axisLabel: AXIS },
+  series: [{ type: "bar", data: Object.values(S.ratings.confidence),
+    itemStyle: { color: "#0694a2", borderRadius: [4, 4, 0, 0] },
+    label: { show: true, position: "top", fontSize: 11, color: AXIS.color } }],
+});
+make("chart-final").setOption({
+  title: { text: "Rebuttal 后最终意见", left: "center", textStyle: { fontSize: 13 } },
+  tooltip: { ...TIP, formatter: "{b}: {c} 条 ({d}%)" },
+  legend: { bottom: 0, textStyle: { fontSize: 11, color: AXIS.color } },
+  series: [{ type: "pie", radius: ["36%", "62%"], center: ["50%", "46%"],
+    itemStyle: { borderRadius: 5, borderColor: "#fff", borderWidth: 2 },
+    label: { formatter: "{b} {d}%", fontSize: 11, color: AXIS.color },
+    data: Object.entries(S.ratings.final).map(([k, v], i) =>
+      ({ name: k, value: v, itemStyle: { color: k === "Accept" ? "#0e9f6e" : k === "Reject" ? "#e02424" : PALETTE[i % PALETTE.length] } })) }],
+});
+make("chart-nreviews").setOption({
+  tooltip: { ...TIP, trigger: "axis" },
+  grid: { left: 40, right: 20, top: 20, bottom: 40 },
+  xAxis: { type: "category", name: "评审人数", data: Object.keys(S.ratings.reviewsPerPaper), axisLabel: AXIS },
+  yAxis: { type: "value", axisLabel: AXIS },
+  series: [{ type: "bar", data: Object.values(S.ratings.reviewsPerPaper),
+    itemStyle: { color: "#7e3af2", borderRadius: [4, 4, 0, 0] },
+    label: { show: true, position: "top", fontSize: 11, color: AXIS.color } }],
+});
+make("chart-theme-rating").setOption({
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const t = S.ratings.themeQuality[p[0].dataIndex];
+    return `${t.name}<br/>平均评分 ${t.avgRating}（${t.n} 篇主题论文）`; } },
+  grid: { left: 8, right: 55, top: 10, bottom: 30, containLabel: true },
+  xAxis: { type: "value", min: 3.4, max: 4.2, axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true,
+    data: S.ratings.themeQuality.map((t) => t.name), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.ratings.themeQuality.map((t) => t.avgRating),
+    itemStyle: { color: "#f59e0b", borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+
+/* ---------- 四、研究主题 ---------- */
+make("chart-theme").setOption({
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const t = S.themes[p[0].dataIndex];
+    return `${t.name}<br/>命中 ${t.count} 篇（${t.ratio}%）· 主主题 ${t.primary} 篇`; } },
+  grid: { left: 8, right: 50, top: 10, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true, data: S.themes.map((t) => t.name), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.themes.map((t) => t.count),
+    itemStyle: { color: (p) => PALETTE[p.dataIndex % PALETTE.length], borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+const primaries = S.themes.filter((t) => t.primary > 0).sort((a, b) => b.primary - a.primary);
+make("chart-theme-primary").setOption({
+  title: { text: "主主题占比（每篇仅计一次）", left: "center", textStyle: { fontSize: 13 } },
+  tooltip: { ...TIP, formatter: "{b}: {c} 篇 ({d}%)" },
+  legend: { type: "scroll", bottom: 0, textStyle: { fontSize: 10, color: AXIS.color } },
+  series: [{ type: "pie", radius: ["30%", "55%"], center: ["50%", "46%"],
+    label: { show: false },
+    data: primaries.map((t, i) => ({ name: t.name, value: t.primary, itemStyle: { color: PALETTE[i % PALETTE.length] } })) }],
+});
+document.getElementById("theme-examples").innerHTML =
+  S.themes.slice(0, 4).map((t) =>
+    `<b style="color:#2456d6">${t.name}</b>（${t.count} 篇）代表作：${t.examples.slice(0, 2).map(esc).join("；")}`).join("<br>");
+
+/* ---------- 五、关键词 ---------- */
+make("chart-keyword").setOption({
+  title: { text: "英文高频词 Top 30（标题×3 权重）", left: "center", textStyle: { fontSize: 13 } },
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const k = S.keywords[p[0].dataIndex];
+    return `${k.word}<br/>加权 ${k.count} · 出现于 ${k.docs} 篇`; } },
+  grid: { left: 8, right: 55, top: 34, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true, data: S.keywords.slice(0, 30).map((k) => k.word), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.keywords.slice(0, 30).map((k) => k.count),
+    itemStyle: { color: "#2456d6", borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+make("chart-zh").setOption({
+  title: { text: "中文摘要技术术语（出现论文数）", left: "center", textStyle: { fontSize: 13 } },
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const t = S.zhTerms[p[0].dataIndex];
+    return `${t.name}<br/>${t.count} 篇（${t.ratio}%）`; } },
+  grid: { left: 8, right: 55, top: 34, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true, data: S.zhTerms.slice(0, 30).map((t) => t.name), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.zhTerms.slice(0, 30).map((t) => t.count),
+    itemStyle: { color: "#0e9f6e", borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+
+/* ---------- 六、热点短语 ---------- */
+make("chart-phrase").setOption({
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const t = S.phrases[p[0].dataIndex];
+    return `${t.name}<br/>${t.count} 篇（${t.ratio}%）`; } },
+  grid: { left: 8, right: 55, top: 10, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true, data: S.phrases.map((t) => t.name), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.phrases.map((t) => t.count),
+    itemStyle: { color: (p) => (p.dataIndex < 3 ? "#e02424" : "#3d74e8"), borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color, formatter: (p) => `${p.value} (${S.phrases[p.dataIndex].ratio}%)` } }],
+});
+document.getElementById("phrase-examples").innerHTML =
+  S.phrases.slice(0, 3).map((t) =>
+    `<b style="color:#e02424">${t.name}</b> 代表作：${t.examples.slice(0, 2).map(esc).join("；")}`).join("<br>");
+
+/* ---------- 七、热力图 ---------- */
+make("chart-heatmap").setOption({
+  tooltip: { position: "top", formatter: (p) => `${S.heatmap.themes[p.value[1]]} × ${S.heatmap.techs[p.value[0]]}<br/>${p.value[2]} 篇` },
+  grid: { left: 8, right: 20, top: 10, bottom: 60, containLabel: true },
+  xAxis: { type: "category", data: S.heatmap.techs, axisLabel: { ...AXIS, rotate: 30 } },
+  yAxis: { type: "category", inverse: true, data: S.heatmap.themes, axisLabel: AXIS },
+  visualMap: { min: 0, max: Math.max(...S.heatmap.data.flat()), calculable: true,
+    orient: "horizontal", left: "center", bottom: 0,
+    inRange: { color: ["#f4f6fa", "#bcd0f5", "#5b85e8", "#1d3fa8"] } },
+  series: [{ type: "heatmap",
+    data: S.heatmap.data.flatMap((row, y) => row.map((v, x) => [x, y, v])),
+    label: { show: true, fontSize: 10, color: "#46536b" } }],
+});
+
+/* ---------- 八、开放科学 ---------- */
+make("chart-code").setOption({
+  title: { text: "各主题组代码开源率（%）", left: "center", textStyle: { fontSize: 13 } },
+  tooltip: { ...TIP, trigger: "axis", formatter: (p) => {
+    const g = S.ratings.groupQuality[p[0].dataIndex];
+    return `${g.name}<br/>开源率 ${g.codeRate}%（${g.papers} 篇）· 平均评分 ${g.avgRating}`; } },
+  grid: { left: 40, right: 30, top: 36, bottom: 60 },
+  xAxis: { type: "category", data: S.ratings.groupQuality.map((g) => g.name),
+    axisLabel: { ...AXIS, rotate: 25 } },
+  yAxis: { type: "value", min: 60, max: 85, axisLabel: AXIS },
+  series: [{ type: "bar", data: S.ratings.groupQuality.map((g) => g.codeRate),
+    itemStyle: { color: "#0e9f6e", borderRadius: [4, 4, 0, 0] },
+    label: { show: true, position: "top", fontSize: 11, color: AXIS.color } }],
+});
+
+/* 自动洞察 */
+(function insights() {
+  const topGroup = S.topicGroups[0];
+  const topTheme = S.themes[0];
+  const topPhrase = S.phrases[0];
+  const topZh = S.zhTerms[0];
+  const acc = S.ratings.final.Accept || 0, rej = S.ratings.final.Reject || 0;
+  const accRate = ((acc / (acc + rej)) * 100).toFixed(1);
+  const topAuthor = S.authors.top[0];
+  document.getElementById("insights").innerHTML = [
+    `<b>研究热点：</b>按内容归类，<b>${topTheme.name}</b> 命中 ${topTheme.count} 篇（${topTheme.ratio}%），是最活跃的研究方向；官方分类中 <b>${topGroup.name}</b> 组覆盖 ${topGroup.count} 篇（${topGroup.ratio}%）。`,
+    `<b>技术趋势：</b><b>${topPhrase.name}</b> 出现在 ${topPhrase.count} 篇（${topPhrase.ratio}%）论文中，为第一大技术热词；中文摘要中「${topZh.name}」出现于 ${topZh.count} 篇，与英文统计相互印证。`,
+    `<b>评审生态：</b>共 ${o.totalReviews} 条公开评审，约 ${Math.round(o.totalReviews / o.total * 10) / 10} 条/篇；初始评分集中在 3-4 分区间，Rebuttal 后明确表态的评审中 <b>${accRate}% 为 Accept</b>，反映争议论文经 rebuttal 普遍转为接收。`,
+    `<b>开放科学：</b>${o.codeRatio}% 的论文声明了代码仓库，社区开源氛围浓厚；其中 Special Topic 组开源率最高（${S.ratings.groupQuality.find((g) => g.name === "Special Topic")?.codeRate ?? "-"}%）。`,
+    `<b>高产作者：</b>${esc(topAuthor.name)} 以 ${topAuthor.count} 篇居首，平均每篇 ${o.avgAuthors} 位作者，医学影像研究合作强度高。`,
+  ].map((t) => `<div class="note-block">${t}</div>`).join("");
+})();
+
+/* ---------- 九、作者 ---------- */
+make("chart-author").setOption({
+  tooltip: { ...TIP, trigger: "axis" },
+  grid: { left: 8, right: 45, top: 10, bottom: 30, containLabel: true },
+  xAxis: { type: "value", axisLabel: AXIS },
+  yAxis: { type: "category", inverse: true, data: S.authors.top.map((a) => a.name), axisLabel: AXIS },
+  series: [{ type: "bar", data: S.authors.top.map((a) => a.count),
+    itemStyle: { color: "#7e3af2", borderRadius: [0, 4, 4, 0] },
+    label: { show: true, position: "right", fontSize: 11, color: AXIS.color } }],
+});
+
+document.getElementById("footer").textContent =
+  `MICCAI 2026 论文库 · 统计数据由 scripts/analyze_papers.py 生成 · ${S.generatedAt}`;
+</script>
+</body>
+</html>

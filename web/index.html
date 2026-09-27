@@ -38,6 +38,11 @@
   }
   .toolbar input[type="search"] { width: 300px; }
   .toolbar label.chk { font-size: 12.5px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .toolbar a.analysis-link {
+    color: #fff; text-decoration: none; font-size: 12.5px; padding: 6px 12px;
+    border: 1px solid rgba(255,255,255,.45); border-radius: 7px; white-space: nowrap;
+  }
+  .toolbar a.analysis-link:hover { background: rgba(255,255,255,.15); }
 
   main { flex: 1; display: flex; min-height: 0; }
   #list-pane {
@@ -137,6 +142,7 @@
     <select id="page-size">
       <option>30</option><option>50</option><option>100</option><option>150</option>
     </select>
+    <a class="analysis-link" href="analysis.html">📊 统计分析</a>
   </div>
 </header>
 
@@ -393,8 +399,16 @@ $("topic-select").addEventListener("change", (e) => { state.topic = e.target.val
 $("code-only").addEventListener("change", (e) => { state.code = e.target.checked; loadList(true); });
 $("page-size").addEventListener("change", (e) => { state.limit = Number(e.target.value); loadList(true); });
 
-loadTopics();
-loadList(true);
+// 支持 URL 参数联动（从统计分析页跳转）：?topic=... &q=...
+(async function init() {
+  const params = new URLSearchParams(location.search);
+  const urlTopic = params.get("topic") || "";
+  const urlQ = params.get("q") || "";
+  if (urlQ) { state.q = urlQ; $("search").value = urlQ; }
+  await loadTopics();
+  if (urlTopic) { state.topic = urlTopic; $("topic-select").value = urlTopic; }
+  loadList(true);
+})();
 </script>
 </body>
 </html>
