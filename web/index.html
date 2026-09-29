@@ -105,6 +105,14 @@
   .tab-body { padding: 14px 4px; font-size: 14px; line-height: 1.85; white-space: pre-wrap; }
   .tab-body.abstract { white-space: normal; }
 
+  .lang-block { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 14px; }
+  .lang-block.zh { background: #f7f9fe; border-color: #cdd9f3; }
+  .lang-block.en { background: var(--panel); }
+  .lang-label { font-size: 12.5px; font-weight: 600; color: var(--accent); margin-bottom: 8px; letter-spacing: .3px; }
+  .lang-block.en .lang-label { color: var(--muted); }
+  .lang-block p { margin: 0; line-height: 1.9; }
+  .lang-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin: 6px 0 8px; }
+
   .review-block { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
   .review-head {
     display: flex; align-items: center; gap: 8px; padding: 9px 13px; background: #f7f9fd;
@@ -322,10 +330,17 @@ function renderDetail(p) {
   </div>`;
 
   const tabs = [
-    { key: "zh", label: "中文摘要", render: () => p.abstract_zh
-        ? `<div class="tab-body abstract">${esc(p.abstract_zh)}</div>`
-        : '<div class="note">暂无翻译</div>' },
-    { key: "en", label: "English Abstract", render: () => `<div class="tab-body abstract">${esc(p.abstract || "")}</div>` },
+    { key: "bilingual", label: "双语摘要", render: () => `
+      <div class="tab-body abstract">
+        <div class="lang-block zh">
+          <div class="lang-label">🇨🇳 中文摘要</div>
+          <p>${p.abstract_zh ? esc(p.abstract_zh) : "暂无翻译"}</p>
+        </div>
+        <div class="lang-block en">
+          <div class="lang-label">EN · English Abstract</div>
+          <p>${esc(p.abstract || "")}</p>
+        </div>
+      </div>` },
     { key: "review", label: `评审意见 (${reviews.length})`, render: () => renderBlocks(p.reviews, "review") },
     { key: "feedback", label: "作者反馈", render: () => p.author_feedback
         ? `<div class="tab-body">${esc(p.author_feedback)}</div>` : '<div class="note">无内容</div>' },
